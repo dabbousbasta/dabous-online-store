@@ -1,200 +1,91 @@
 import { useEffect, useState } from 'react'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { supabase } from './lib/supabase'
-
-
-function formatPrice(price) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(Number(price))
-}
-
-async function getProductImageUrl(imagePath) {
-  if (!imagePath) {
-    return ''
-  }
-
-  const { data, error } = await supabase.storage
-    .from('item-images')
-    .createSignedUrl(imagePath, 60 * 60)
-
-  if (error) {
-    console.error('Image signed URL error:', error.message)
-    return ''
-  }
-
-  return data.signedUrl
-}
+import AdminRoute from './components/admin/AdminRoute'
+import StorefrontPage from './pages/StorefrontPage'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 
 function App() {
-  const [store, setStore] = useState(null)
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState('')
+  const [authState, setAuthState] = useState({
+    loading: true,
+    user: null,
+    profile: null,
+    role: null,
+  })
 
   useEffect(() => {
-    async function loadStorefront() {
-      setLoading(true)
-      setErrorMessage('')
+    let isActive = true
 
-      const [settingsResult, productsResult] = await Promise.all([
-        supabase
-          .from('store_settings')
-          .select('store_name, store_tagline, whatsapp_number, currency_code, currency_symbol')
-          .limit(1)
-          .maybeSingle(),
-        supabase.rpc('get_store_public_products'),
-      ])
+    async function loadAuthState() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-      if (settingsResult.error) {
-        setErrorMessage(`خطأ في تحميل إعدادات المتجر: ${settingsResult.error.message}`)
-        setLoading(false)
+      if (!user) {
+        if (isActive) {
+          setAuthState({
+            loading: false,
+            user: null,
+            profile: null,
+            role: null,
+          })
+        }
         return
       }
 
-      if (productsResult.error) {
-        setErrorMessage(`خطأ في تحميل المنتجات: ${productsResult.error.message}`)
-        setLoading(false)
-        return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (isActive) {
+        setAuthState({
+          loading: false,
+          user,
+          profile: profile ?? null,
+          role: profile?.role ?? null,
+        })
       }
-
-const productsWithImages = await Promise.all(
-  (productsResult.data ?? []).map(async (product) => ({
-    ...product,
-    imageUrl: await getProductImageUrl(product.image_path),
-  })),
-)
-
-setStore(settingsResult.data)
-setProducts(productsWithImages)
-setLoading(false)
     }
 
-    loadStorefront()
+    loadAuthState()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadAuthState()
+    })
+
+    return () => {
+      isActive = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  if (loading) {
-    return (
-      <main className="page-state">
-        <p>⏳ جارٍ تحميل متجر دبوس اونلاين...</p>
-      </main>
-    )
-  }
-
-  if (errorMessage) {
-    return (
-      <main className="page-state error-state">
-        <h1>حدث خطأ في تحميل المتجر</h1>
-        <p>{errorMessage}</p>
-      </main>
-    )
-  }
-
   return (
-    <div className="store-app" dir="rtl">
-      <header className="store-header">
-        <div className="brand">
-          <div className="brand-mark">د</div>
-          <div>
-            <h1>{store?.store_name ?? 'دبوس اونلاين'}</h1>
-            <p>{store?.store_tagline ?? 'من الأساس حتى التشطيب'}</p>
-          </div>
-        </div>
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<StorefrontPage />} />
 
-        <div className="header-note">
-          متجر تجريبي مرتبط بـ Supabase
-        </div>
-      </header>
+        <Route
+          path="/admin/login"
+          element={<AdminLoginPage authState={authState} />}
+        />
 
-      <main className="store-content">
-        <section className="intro-section">
-          <span className="eyebrow">منتجات مختارة</span>
-          <h2>منتجات دبوس اونلاين</h2>
-          <p>
-            هذه الصفحة تقرأ المنتجات المنشورة فقط من قاعدة بيانات Supabase.
-          </p>
-        </section>
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute authState={authState}>
+              <AdminDashboardPage authState={authState} />
+            </AdminRoute>
+          }
+        />
 
-        {products.length === 0 ? (
-          <section className="empty-state">
-            <h2>لا توجد منتجات منشورة حالياً</h2>
-            <p>أضف إعداد متجر لصنف من لوحة الإدارة لاحقاً ليظهر هنا.</p>
-          </section>
-        ) : (
-          <section className="products-grid">
-            {products.map((product) => {
-              
-              const isAvailable = product.stock_status !== 'out_of_stock'
-
-              return (
-                <article className="product-card" key={product.id}>
-                  <div className="product-image-wrap">
-                    {product.discount_percent ? (
-                      <span className="discount-badge">
-                        خصم {product.discount_percent}%
-                      </span>
-                    ) : null}
-
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="product-image"
-                        loading="lazy"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    ) : (
-                      <div className="image-placeholder">لا توجد صورة</div>
-                    )}
-                  </div>
-
-                  <div className="product-content">
-                    {product.category_name ? (
-                      <p className="product-category">{product.category_name}</p>
-                    ) : null}
-
-                    <h3>{product.name}</h3>
-
-                    {product.short_description ? (
-                      <p className="product-description">
-                        {product.short_description}
-                      </p>
-                    ) : null}
-
-                    <div className="price-row">
-                      <strong>{formatPrice(product.display_price)}</strong>
-
-                      {product.old_price ? (
-                        <span className="old-price">
-                          {formatPrice(product.old_price)}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="product-footer">
-                      <span className={isAvailable ? 'stock available' : 'stock unavailable'}>
-                        {isAvailable ? 'متوفر' : 'غير متوفر'}
-                      </span>
-
-                      <button type="button" className="details-button">
-                        عرض التفاصيل
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
-          </section>
-        )}
-      </main>
-
-      <footer className="store-footer">
-        جميع الحقوق محفوظة © {new Date().getFullYear()} {store?.store_name ?? 'دبوس اونلاين'}
-      </footer>
-    </div>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </HashRouter>
   )
 }
 
