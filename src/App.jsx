@@ -1,121 +1,200 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase'
+
+
+function formatPrice(price) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(Number(price))
+}
+
+async function getProductImageUrl(imagePath) {
+  if (!imagePath) {
+    return ''
+  }
+
+  const { data, error } = await supabase.storage
+    .from('item-images')
+    .createSignedUrl(imagePath, 60 * 60)
+
+  if (error) {
+    console.error('Image signed URL error:', error.message)
+    return ''
+  }
+
+  return data.signedUrl
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [store, setStore] = useState(null)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+    async function loadStorefront() {
+      setLoading(true)
+      setErrorMessage('')
+
+      const [settingsResult, productsResult] = await Promise.all([
+        supabase
+          .from('store_settings')
+          .select('store_name, store_tagline, whatsapp_number, currency_code, currency_symbol')
+          .limit(1)
+          .maybeSingle(),
+        supabase.rpc('get_store_public_products'),
+      ])
+
+      if (settingsResult.error) {
+        setErrorMessage(`خطأ في تحميل إعدادات المتجر: ${settingsResult.error.message}`)
+        setLoading(false)
+        return
+      }
+
+      if (productsResult.error) {
+        setErrorMessage(`خطأ في تحميل المنتجات: ${productsResult.error.message}`)
+        setLoading(false)
+        return
+      }
+
+const productsWithImages = await Promise.all(
+  (productsResult.data ?? []).map(async (product) => ({
+    ...product,
+    imageUrl: await getProductImageUrl(product.image_path),
+  })),
+)
+
+setStore(settingsResult.data)
+setProducts(productsWithImages)
+setLoading(false)
+    }
+
+    loadStorefront()
+  }, [])
+
+  if (loading) {
+    return (
+      <main className="page-state">
+        <p>⏳ جارٍ تحميل متجر دبوس اونلاين...</p>
+      </main>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <main className="page-state error-state">
+        <h1>حدث خطأ في تحميل المتجر</h1>
+        <p>{errorMessage}</p>
+      </main>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="store-app" dir="rtl">
+      <header className="store-header">
+        <div className="brand">
+          <div className="brand-mark">د</div>
+          <div>
+            <h1>{store?.store_name ?? 'دبوس اونلاين'}</h1>
+            <p>{store?.store_tagline ?? 'من الأساس حتى التشطيب'}</p>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
+
+        <div className="header-note">
+          متجر تجريبي مرتبط بـ Supabase
+        </div>
+      </header>
+
+      <main className="store-content">
+        <section className="intro-section">
+          <span className="eyebrow">منتجات مختارة</span>
+          <h2>منتجات دبوس اونلاين</h2>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            هذه الصفحة تقرأ المنتجات المنشورة فقط من قاعدة بيانات Supabase.
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        </section>
 
-      <div className="ticks"></div>
+        {products.length === 0 ? (
+          <section className="empty-state">
+            <h2>لا توجد منتجات منشورة حالياً</h2>
+            <p>أضف إعداد متجر لصنف من لوحة الإدارة لاحقاً ليظهر هنا.</p>
+          </section>
+        ) : (
+          <section className="products-grid">
+            {products.map((product) => {
+              
+              const isAvailable = product.stock_status !== 'out_of_stock'
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+              return (
+                <article className="product-card" key={product.id}>
+                  <div className="product-image-wrap">
+                    {product.discount_percent ? (
+                      <span className="discount-badge">
+                        خصم {product.discount_percent}%
+                      </span>
+                    ) : null}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="product-image"
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <div className="image-placeholder">لا توجد صورة</div>
+                    )}
+                  </div>
+
+                  <div className="product-content">
+                    {product.category_name ? (
+                      <p className="product-category">{product.category_name}</p>
+                    ) : null}
+
+                    <h3>{product.name}</h3>
+
+                    {product.short_description ? (
+                      <p className="product-description">
+                        {product.short_description}
+                      </p>
+                    ) : null}
+
+                    <div className="price-row">
+                      <strong>{formatPrice(product.display_price)}</strong>
+
+                      {product.old_price ? (
+                        <span className="old-price">
+                          {formatPrice(product.old_price)}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="product-footer">
+                      <span className={isAvailable ? 'stock available' : 'stock unavailable'}>
+                        {isAvailable ? 'متوفر' : 'غير متوفر'}
+                      </span>
+
+                      <button type="button" className="details-button">
+                        عرض التفاصيل
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </section>
+        )}
+      </main>
+
+      <footer className="store-footer">
+        جميع الحقوق محفوظة © {new Date().getFullYear()} {store?.store_name ?? 'دبوس اونلاين'}
+      </footer>
+    </div>
   )
 }
 
