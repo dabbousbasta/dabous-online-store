@@ -150,31 +150,38 @@ function StorefrontPage() {
   return (
     <div className="store-app" dir="rtl">
       <header className="store-header">
-        <div className="brand">
-          <div className="brand-mark">د</div>
-          <div>
-            <h1>{store?.store_name ?? 'دبوس اونلاين'}</h1>
-            <p>{store?.store_tagline ?? 'من الأساس حتى التشطيب'}</p>
-          </div>
-        </div>
+  <button
+    type="button"
+    className="brand brand-home-button"
+    onClick={() => navigate('/')}
+    aria-label="الذهاب إلى الصفحة الرئيسية"
+    title="الذهاب إلى الصفحة الرئيسية"
+  >
+    <div className="brand-mark">د</div>
 
-        <div className="store-header-actions">
-          <button
-            type="button"
-            className="store-cart-button"
-            onClick={() => navigate('/cart')}
-            aria-label={`سلة المشتريات، فيها ${totalItems} قطعة`}
-          >
-            <span className="store-cart-icon" aria-hidden="true">🛒</span>
-            <span>السلة</span>
-            <span className="store-cart-count">{totalItems}</span>
-          </button>
+    <div className="brand-text">
+      <h1>{store?.store_name ?? 'دبوس اونلاين'}</h1>
+      <p>{store?.store_tagline ?? 'من الأساس حتى التشطيب'}</p>
+    </div>
+  </button>
 
-          <div className="header-note">
-            متجر دبوس اونلاين
-          </div>
-        </div>
-      </header>
+  <div className="store-header-actions">
+    <button
+      type="button"
+      className="store-cart-button"
+      onClick={() => navigate('/cart')}
+      aria-label={`سلة المشتريات، فيها ${totalItems} قطعة`}
+    >
+      <span className="store-cart-icon" aria-hidden="true">🛒</span>
+      <span>السلة</span>
+      <span className="store-cart-count">{totalItems}</span>
+    </button>
+
+    <div className="header-note">
+      متجر دبوس اونلاين
+    </div>
+  </div>
+</header>
 
       <main className="store-content">
         <section className="intro-section">

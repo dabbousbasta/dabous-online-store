@@ -146,22 +146,29 @@ function ProductDetailsPage() {
   return (
     <div className="store-app" dir="rtl">
       <header className="store-header">
-        <div className="brand">
-          <div className="brand-mark">د</div>
-          <div>
-            <h1>دبوس اونلاين</h1>
-            <p>من الأساس حتى التشطيب</p>
-          </div>
-        </div>
+  <button
+    type="button"
+    className="brand brand-home-button"
+    onClick={() => navigate('/')}
+    aria-label="الذهاب إلى الصفحة الرئيسية"
+    title="الذهاب إلى الصفحة الرئيسية"
+  >
+    <div className="brand-mark">د</div>
 
-        <button
-          type="button"
-          className="store-back-button"
-          onClick={() => navigate('/')}
-        >
-          ← العودة إلى المتجر
-        </button>
-      </header>
+    <div className="brand-text">
+      <h1>دبوس اونلاين</h1>
+      <p>من الأساس حتى التشطيب</p>
+    </div>
+  </button>
+
+  <button
+    type="button"
+    className="store-back-button"
+    onClick={() => navigate('/')}
+  >
+    ← العودة إلى المتجر
+  </button>
+</header>
 
       <main className="store-content">
         <article className="product-details-card">

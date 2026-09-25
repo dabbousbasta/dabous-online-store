@@ -29,9 +29,13 @@ async function getProductImageUrl(imagePath) {
 
 function CartItemImage({ imagePath, name }) {
   const [imageUrl, setImageUrl] = useState('')
+  const [hasImageError, setHasImageError] = useState(false)
+  const fallbackImageUrl = `${import.meta.env.BASE_URL}logo.png`
 
   useEffect(() => {
     async function loadImage() {
+      setHasImageError(false)
+
       const url = await getProductImageUrl(imagePath)
       setImageUrl(url)
     }
@@ -39,8 +43,14 @@ function CartItemImage({ imagePath, name }) {
     loadImage()
   }, [imagePath])
 
-  if (!imageUrl) {
-    return <div className="cart-item-image-placeholder">لا توجد صورة</div>
+  if (!imageUrl || hasImageError) {
+    return (
+      <img
+        src={fallbackImageUrl}
+        alt={`شعار دبوس اونلاين — ${name}`}
+        className="cart-item-image cart-item-image-fallback"
+      />
+    )
   }
 
   return (
@@ -48,9 +58,7 @@ function CartItemImage({ imagePath, name }) {
       src={imageUrl}
       alt={name}
       className="cart-item-image"
-      onError={(event) => {
-        event.currentTarget.style.display = 'none'
-      }}
+      onError={() => setHasImageError(true)}
     />
   )
 }
@@ -89,22 +97,29 @@ function CartPage() {
   return (
     <div className="store-app" dir="rtl">
       <header className="store-header">
-        <div className="brand">
-          <div className="brand-mark">د</div>
-          <div>
-            <h1>دبوس اونلاين</h1>
-            <p>من الأساس حتى التشطيب</p>
-          </div>
-        </div>
+  <button
+    type="button"
+    className="brand brand-home-button"
+    onClick={() => navigate('/')}
+    aria-label="الذهاب إلى الصفحة الرئيسية"
+    title="الذهاب إلى الصفحة الرئيسية"
+  >
+    <div className="brand-mark">د</div>
 
-        <button
-          type="button"
-          className="store-back-button"
-          onClick={() => navigate('/')}
-        >
-          ← متابعة التسوق
-        </button>
-      </header>
+    <div className="brand-text">
+      <h1>دبوس اونلاين</h1>
+      <p>من الأساس حتى التشطيب</p>
+    </div>
+  </button>
+
+  <button
+    type="button"
+    className="store-back-button"
+    onClick={() => navigate('/')}
+  >
+    ← متابعة التسوق
+  </button>
+</header>
 
       <main className="store-content">
         <section className="cart-page-heading">
