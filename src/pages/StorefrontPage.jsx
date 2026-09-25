@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useCart } from '../context/CartContext'
 
 function formatPrice(price) {
   return new Intl.NumberFormat('en-US', {
@@ -27,6 +29,9 @@ async function getProductImageUrl(imagePath) {
 }
 
 function StorefrontPage() {
+  const navigate = useNavigate()
+  const { totalItems } = useCart()
+
   const [store, setStore] = useState(null)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -59,10 +64,14 @@ function StorefrontPage() {
       }
 
       const productsWithImages = await Promise.all(
-        (productsResult.data ?? []).map(async (product) => ({
-          ...product,
-          imageUrl: await getProductImageUrl(product.image_path),
-        })),
+        (productsResult.data ?? []).map(async (product) => {
+          const imagePath = product.cover_image_path || product.image_path
+
+          return {
+            ...product,
+            imageUrl: await getProductImageUrl(imagePath),
+          }
+        }),
       )
 
       setStore(settingsResult.data)
@@ -101,8 +110,21 @@ function StorefrontPage() {
           </div>
         </div>
 
-        <div className="header-note">
-          متجر تجريبي مرتبط بـ Supabase
+        <div className="store-header-actions">
+          <button
+            type="button"
+            className="store-cart-button"
+            onClick={() => navigate('/cart')}
+            aria-label={`سلة المشتريات، فيها ${totalItems} قطعة`}
+          >
+            <span className="store-cart-icon" aria-hidden="true">🛒</span>
+            <span>السلة</span>
+            <span className="store-cart-count">{totalItems}</span>
+          </button>
+
+          <div className="header-note">
+            متجر دبوس اونلاين
+          </div>
         </div>
       </header>
 
@@ -110,13 +132,13 @@ function StorefrontPage() {
         <section className="intro-section">
           <span className="eyebrow">منتجات مختارة</span>
           <h2>منتجات دبوس اونلاين</h2>
-          <p>هذه الصفحة تقرأ المنتجات المنشورة فقط من قاعدة بيانات Supabase.</p>
+          <p>تصفح المنتجات المنشورة والمتاحة حالياً.</p>
         </section>
 
         {products.length === 0 ? (
           <section className="empty-state">
             <h2>لا توجد منتجات منشورة حالياً</h2>
-            <p>أضف إعداد متجر لصنف من لوحة الإدارة لاحقاً ليظهر هنا.</p>
+            <p>ستظهر المنتجات هنا فور نشرها من لوحة الإدارة.</p>
           </section>
         ) : (
           <section className="products-grid">
@@ -175,7 +197,11 @@ function StorefrontPage() {
                         {isAvailable ? 'متوفر' : 'غير متوفر'}
                       </span>
 
-                      <button type="button" className="details-button">
+                      <button
+                        type="button"
+                        className="details-button"
+                        onClick={() => navigate(`/product/${product.slug}`)}
+                      >
                         عرض التفاصيل
                       </button>
                     </div>

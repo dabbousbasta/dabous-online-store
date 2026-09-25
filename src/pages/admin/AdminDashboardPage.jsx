@@ -43,27 +43,55 @@ function AdminDashboardPage({ authState }) {
       </section>
 
       <section className="admin-next-steps">
-        <h2>ما سيظهر هنا في المرحلة التالية</h2>
+        <h2>إدارة المتجر</h2>
+
         <div className="admin-placeholder-grid">
-          <article>
+          <article className="admin-navigation-card">
             <span>المنتجات</span>
             <strong>—</strong>
-            <p>إدارة المنتجات المنشورة</p>
+            <p>ابحث عن الأصناف واختر المنتجات التي تريد عرضها في المتجر.</p>
+
+            <button
+              type="button"
+              className="card-link-button"
+              onClick={() => navigate('/admin/products')}
+            >
+              إدارة المنتجات
+            </button>
           </article>
-          <article>
+
+          <article className="admin-navigation-card">
             <span>التصنيفات</span>
             <strong>—</strong>
-            <p>إدارة تصنيفات المتجر</p>
+            <p>إضافة وتعديل وترتيب وإخفاء تصنيفات المتجر.</p>
+
+            <button
+              type="button"
+              className="card-link-button"
+              onClick={() => navigate('/admin/categories')}
+            >
+              إدارة التصنيفات
+            </button>
           </article>
-          <article>
+
+          <article className="admin-navigation-card">
             <span>الطلبات</span>
             <strong>—</strong>
-            <p>طلبات العملاء وحالاتها</p>
+            <p>عرض طلبات العملاء، تفاصيلها، وتحديث حالة كل طلب.</p>
+
+            <button
+              type="button"
+              className="card-link-button"
+              onClick={() => navigate('/admin/orders')}
+            >
+              إدارة الطلبات
+            </button>
           </article>
+
           <article>
             <span>مخزون منخفض</span>
             <strong>—</strong>
-            <p>تنبيهات الكمية لاحقاً</p>
+            <p>تنبيهات الكمية ستظهر لاحقاً.</p>
           </article>
         </div>
       </section>
