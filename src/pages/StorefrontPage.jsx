@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useCart } from '../context/CartContext'
 
+const IMAGE_BUCKET = 'item-images'
+
 function formatPrice(price) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -11,21 +13,59 @@ function formatPrice(price) {
   }).format(Number(price))
 }
 
+function normalizeStoragePath(imagePath) {
+  const value = String(imagePath ?? '').trim()
+
+  if (!value) {
+    return ''
+  }
+
+  const bucketPrefix = `${IMAGE_BUCKET}/`
+
+  if (value.startsWith(bucketPrefix)) {
+    return value.slice(bucketPrefix.length)
+  }
+
+  return value.replace(/^\/+/, '')
+}
+
 async function getProductImageUrl(imagePath) {
-  if (!imagePath) {
+  const normalizedPath = normalizeStoragePath(imagePath)
+
+  if (!normalizedPath) {
     return ''
   }
 
   const { data, error } = await supabase.storage
-    .from('item-images')
-    .createSignedUrl(imagePath, 60 * 60)
+    .from(IMAGE_BUCKET)
+    .createSignedUrl(normalizedPath, 60 * 60)
 
   if (error) {
-    console.error('Image signed URL error:', error.message)
+    console.error('Image signed URL error:', normalizedPath, error.message)
     return ''
   }
 
-  return data.signedUrl
+  const separator = data.signedUrl.includes('?') ? '&' : '?'
+
+  return `${data.signedUrl}${separator}cacheNonce=${Date.now()}`
+}
+
+function ProductImage({ imageUrl, productName }) {
+  const [hasImageError, setHasImageError] = useState(false)
+
+  if (!imageUrl || hasImageError) {
+    return <div className="image-placeholder">لا توجد صورة</div>
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={productName}
+      className="product-image"
+      loading="lazy"
+      onError={() => setHasImageError(true)}
+    />
+  )
 }
 
 function StorefrontPage() {
@@ -154,19 +194,10 @@ function StorefrontPage() {
                       </span>
                     ) : null}
 
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="product-image"
-                        loading="lazy"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    ) : (
-                      <div className="image-placeholder">لا توجد صورة</div>
-                    )}
+                    <ProductImage
+                      imageUrl={product.imageUrl}
+                      productName={product.name}
+                    />
                   </div>
 
                   <div className="product-content">
