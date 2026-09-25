@@ -2165,3 +2165,8 @@ button {
     align-self: flex-start;
   }
 }
+.product-image-fallback {
+  padding: 26px;
+  object-fit: contain;
+  background: #ffffff;
+}

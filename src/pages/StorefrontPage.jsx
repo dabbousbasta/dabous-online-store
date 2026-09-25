@@ -52,9 +52,17 @@ async function getProductImageUrl(imagePath) {
 
 function ProductImage({ imageUrl, productName }) {
   const [hasImageError, setHasImageError] = useState(false)
+  const fallbackImageUrl = `${import.meta.env.BASE_URL}logo.png`
 
   if (!imageUrl || hasImageError) {
-    return <div className="image-placeholder">لا توجد صورة</div>
+    return (
+      <img
+        src={fallbackImageUrl}
+        alt={`شعار دبوس اونلاين — ${productName}`}
+        className="product-image product-image-fallback"
+        loading="lazy"
+      />
+    )
   }
 
   return (
